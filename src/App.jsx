@@ -102,37 +102,63 @@ export default function App() {
     <div style={{ background: darkMode ? "#1e1e1e" : "#f0f0f0" }}>
       
       {/* Toolbar */}
-      <div style={{
-        position: "fixed",
-        top: 10,
-        left: 10,
-        background: darkMode ? "#333" : "white",
-        padding: 10,
-        borderRadius: 10,
-        display: "flex",
-        gap: 10
-      }}>
-        <input type="color" onChange={(e) => setColor(e.target.value)} />
+      <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "60px",
+            background: darkMode ? "#2b2b2b" : "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            padding: "0 15px",
+            gap: "15px",
+            borderBottom: "1px solid #ccc",
+            zIndex: 1000
+          }}
+        >
+          <strong>Paint App</strong>
 
-        <input
-          type="range"
-          min="1"
-          max="50"
-          value={brushSize}
-          onChange={(e) => setBrushSize(e.target.value)}
-        />
+          {/* Color */}
+          <input
+            type="color"
+            onChange={(e) => setColor(e.target.value)}
+          />
 
-        <button onClick={() => setIsEraser(!isEraser)}>
-          {isEraser ? "Brush" : "Eraser"}
-        </button>
+          {/* Tamaño */}
+          <input
+            type="range"
+            min="1"
+            max="50"
+            value={brushSize}
+            onChange={(e) => setBrushSize(e.target.value)}
+          />
 
-        <button onClick={clearCanvas}>Clear</button>
+          {/* Herramientas */}
+          <button onClick={() => setIsEraser(false)}>
+            ✏️ Brush
+          </button>
 
-        <button onClick={saveToDatabase}>Save Cloud</button>
+          <button onClick={() => setIsEraser(true)}>
+            🧽 Eraser
+          </button>
 
-        <button onClick={() => setDarkMode(!darkMode)}>
-          {darkMode ? "Light" : "Dark"}
-        </button>
+          <button onClick={clearCanvas}>
+            🗑️ Clear
+          </button>
+
+          <button onClick={saveToDatabase}>
+            ☁️ Save
+          </button>
+
+          <button onClick={saveImage}>
+            💾 Download
+          </button>
+
+          <button onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
       </div>
 
       {/* Canvas */}
@@ -145,7 +171,12 @@ export default function App() {
         onTouchStart={startDrawing}
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
-        style={{ display: "block" }}
+        style={{ 
+          display: "block",
+          marginTop: "60px", // 👈 espacio para la barra
+          width: "100vw",
+          height: "calc(100vh - 60px)"
+         }}
       />
 
       {/* 📜 Historial */}
@@ -156,7 +187,10 @@ export default function App() {
         background: "white",
         padding: 10,
         maxHeight: "90vh",
-        overflow: "auto"
+        overflow: "auto",
+        width: "100vw",
+        height: "100vh",
+      background: darkMode ? "#1e1e1e" : "#f0f0f0"
       }}>
         <h3>Historial</h3>
         {drawings.map((d, i) => (
