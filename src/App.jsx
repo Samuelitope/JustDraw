@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -7,6 +9,7 @@ export default function App() {
   const [brushSize, setBrushSize] = useState(5);
   const [isEraser, setIsEraser] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [drawings, setDrawings] = useState([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,6 +25,8 @@ export default function App() {
 
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
+
+    loadDrawings();
 
     return () => window.removeEventListener("resize", resizeCanvas);
   }, [darkMode]);
@@ -67,30 +72,46 @@ export default function App() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   };
 
-  const saveImage = () => {
+  // 💾 Guardar en Firebase
+  const saveToDatabase = async () => {
     const canvas = canvasRef.current;
-    const link = document.createElement("a");
-    link.download = "drawing.png";
-    link.href = canvas.toDataURL();
-    link.click();
+    const dataURL = canvas.toDataURL();
+
+    await addDoc(collection(db, "drawings"), {
+      image: dataURL,
+      createdAt: new Date(),
+    });
+
+    alert("Guardado en la nube 🚀");
+    loadDrawings();
+  };
+
+  // 📜 Cargar historial
+  const loadDrawings = async () => {
+    const querySnapshot = await getDocs(collection(db, "drawings"));
+    const list = [];
+
+    querySnapshot.forEach((doc) => {
+      list.push(doc.data());
+    });
+
+    setDrawings(list);
   };
 
   return (
     <div style={{ background: darkMode ? "#1e1e1e" : "#f0f0f0" }}>
+      
       {/* Toolbar */}
-      <div
-        style={{
-          position: "fixed",
-          top: 10,
-          left: 10,
-          background: darkMode ? "#333" : "white",
-          padding: 10,
-          borderRadius: 10,
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-        }}
-      >
+      <div style={{
+        position: "fixed",
+        top: 10,
+        left: 10,
+        background: darkMode ? "#333" : "white",
+        padding: 10,
+        borderRadius: 10,
+        display: "flex",
+        gap: 10
+      }}>
         <input type="color" onChange={(e) => setColor(e.target.value)} />
 
         <input
@@ -107,7 +128,7 @@ export default function App() {
 
         <button onClick={clearCanvas}>Clear</button>
 
-        <button onClick={saveImage}>Save</button>
+        <button onClick={saveToDatabase}>Save Cloud</button>
 
         <button onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light" : "Dark"}
@@ -126,6 +147,27 @@ export default function App() {
         onTouchEnd={stopDrawing}
         style={{ display: "block" }}
       />
+
+      {/* 📜 Historial */}
+      <div style={{
+        position: "fixed",
+        right: 10,
+        top: 10,
+        background: "white",
+        padding: 10,
+        maxHeight: "90vh",
+        overflow: "auto"
+      }}>
+        <h3>Historial</h3>
+        {drawings.map((d, i) => (
+          <img
+            key={i}
+            src={d.image}
+            width="100"
+            style={{ display: "block", marginBottom: 10 }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
