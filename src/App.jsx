@@ -5,6 +5,8 @@ export default function App() {
   const [drawing, setDrawing] = useState(false);
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
+  const [isEraser, setIsEraser] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -14,7 +16,7 @@ export default function App() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      ctx.fillStyle = "white";
+      ctx.fillStyle = darkMode ? "#1e1e1e" : "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     };
 
@@ -22,13 +24,16 @@ export default function App() {
     window.addEventListener("resize", resizeCanvas);
 
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, []);
+  }, [darkMode]);
 
   const getPosition = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: clientX - rect.left,
+      y: clientY - rect.top,
     };
   };
 
@@ -42,11 +47,12 @@ export default function App() {
 
   const draw = (e) => {
     if (!drawing) return;
+
     const { x, y } = getPosition(e);
     const ctx = canvasRef.current.getContext("2d");
 
     ctx.lineTo(x, y);
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = isEraser ? (darkMode ? "#1e1e1e" : "white") : color;
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.stroke();
@@ -57,22 +63,36 @@ export default function App() {
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
+    ctx.fillStyle = darkMode ? "#1e1e1e" : "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   };
 
+  const saveImage = () => {
+    const canvas = canvasRef.current;
+    const link = document.createElement("a");
+    link.download = "drawing.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
   return (
-    <div>
+    <div style={{ background: darkMode ? "#1e1e1e" : "#f0f0f0" }}>
       {/* Toolbar */}
-      <div style={{
-        position: "fixed",
-        top: 10,
-        left: 10,
-        background: "white",
-        padding: 10,
-        borderRadius: 10
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 10,
+          left: 10,
+          background: darkMode ? "#333" : "white",
+          padding: 10,
+          borderRadius: 10,
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+        }}
+      >
         <input type="color" onChange={(e) => setColor(e.target.value)} />
+
         <input
           type="range"
           min="1"
@@ -80,7 +100,18 @@ export default function App() {
           value={brushSize}
           onChange={(e) => setBrushSize(e.target.value)}
         />
+
+        <button onClick={() => setIsEraser(!isEraser)}>
+          {isEraser ? "Brush" : "Eraser"}
+        </button>
+
         <button onClick={clearCanvas}>Clear</button>
+
+        <button onClick={saveImage}>Save</button>
+
+        <button onClick={() => setDarkMode(!darkMode)}>
+          {darkMode ? "Light" : "Dark"}
+        </button>
       </div>
 
       {/* Canvas */}
@@ -90,6 +121,10 @@ export default function App() {
         onMouseMove={draw}
         onMouseUp={stopDrawing}
         onMouseLeave={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+        style={{ display: "block" }}
       />
     </div>
   );
