@@ -68,7 +68,15 @@ export default function App() {
     const ctx = canvasRef.current.getContext("2d");
 
     ctx.lineTo(x, y);
-    ctx.strokeStyle = isEraser ? (darkMode ? "#1e1e1e" : "white") : color;
+    
+    // Real transparent erasing
+    if (isEraser) {
+      ctx.globalCompositeOperation = "destination-out";
+    } else {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.strokeStyle = color;
+    }
+    
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.stroke();
@@ -198,30 +206,32 @@ export default function App() {
           display: "block",
           marginTop: "60px", // 👈 espacio para la barra
           width: "100vw",
-          height: "calc(100vh - 60px)"
+          height: "calc(100vh - 60px)",
+          touchAction: "none" // 👈 Prevents screen scrolling while drawing on mobile
          }}
       />
 
       {/* 📜 Historial */}
       <div style={{
         position: "fixed",
-        right: 10,
-        top: 10,
-        background: "white",
+        right: 0,
+        top: "60px", // Start below the toolbar
+        width: "200px", // Fixed width so it doesn't cover the screen
+        height: "calc(100vh - 60px)",
+        background: darkMode ? "#1e1e1e" : "#f0f0f0",
+        borderLeft: darkMode ? "1px solid #444" : "1px solid #ccc",
         padding: 10,
-        maxHeight: "90vh",
-        overflow: "auto",
-        width: "100vw",
-        height: "100vh",
-      background: darkMode ? "#1e1e1e" : "#f0f0f0"
+        overflowY: "auto",
+        zIndex: 100
       }}>
-        <h3>Historial</h3>
+        <h3 style={{ color: darkMode ? "white" : "black" }}>Historial</h3>
         {drawings.map((d, i) => (
           <img
             key={i}
             src={d.image}
-            width="100"
-            style={{ display: "block", marginBottom: 10 }}
+            width="100%"
+            style={{ display: "block", marginBottom: 10, borderRadius: "5px" }}
+            alt={`Drawing ${i}`}
           />
         ))}
       </div>
