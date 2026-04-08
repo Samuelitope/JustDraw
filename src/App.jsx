@@ -48,11 +48,10 @@ export default function App() {
 
   const startDrawing = (e) => {
     const { x, y } = getPosition(e);
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvasRef.current.getContext("2d");
 
-    // Set mode at the START of the stroke
-    ctx.globalCompositeOperation = isEraser ? "destination-out" : "source-over";
+    // We keep it on source-over so we are always "painting"
+    ctx.globalCompositeOperation = "source-over";
     
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -63,11 +62,17 @@ export default function App() {
     if (!drawing) return;
 
     const { x, y } = getPosition(e);
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvasRef.current.getContext("2d");
 
     ctx.lineTo(x, y);
-    ctx.strokeStyle = color;
+
+    // If eraser is on, we "paint" using the background color
+    if (isEraser) {
+      ctx.strokeStyle = darkMode ? "#1e1e1e" : "white";
+    } else {
+      ctx.strokeStyle = color;
+    }
+
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round"; 
