@@ -16,11 +16,22 @@ export default function App() {
     const ctx = canvas.getContext("2d");
 
     const resizeCanvas = () => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+
+      const temp = document.createElement("canvas");
+      temp.width = canvas.width;
+      temp.height = canvas.height;
+      temp.getContext("2d").drawImage(canvas, 0, 0);
+
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
       ctx.fillStyle = darkMode ? "#1e1e1e" : "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.drawImage(temp, 0, 0);
+
     };
 
     resizeCanvas();
@@ -85,9 +96,17 @@ export default function App() {
     alert("Guardado en la nube 🚀");
     loadDrawings();
   };
+  const saveImage = () => {
+    const canvas = canvasRef.current;
+    const link = document.createElement("a");
+    link.download = "drawing.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  };
 
   // 📜 Cargar historial
   const loadDrawings = async () => {
+  try {
     const querySnapshot = await getDocs(collection(db, "drawings"));
     const list = [];
 
@@ -96,6 +115,10 @@ export default function App() {
     });
 
     setDrawings(list);
+  } catch (error) {
+    console.error("Error cargando dibujos:", error);
+  }
+
   };
 
   return (
