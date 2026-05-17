@@ -12,10 +12,9 @@ export default function App() {
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [snapshot, setSnapshot] = useState(null);
   const [cropArea, setCropArea] = useState(null);
-  const [history, setHistory] = useState([]);
 
-  // Controlar si la galería lateral está abierta en móvil
-  const [showGallery, setShowGallery] = useState(false);
+  // 🔄 Estados para el Historial (Ctrl + Z)
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const resizeCanvas = () => {
@@ -26,14 +25,13 @@ export default function App() {
       temp.height = canvas.height;
       temp.getContext("2d").drawImage(canvas, 0, 0);
 
-      // En móviles restamos 100px (60px de la barra superior + 40px de la barra de pincel si aplica)
       canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 60;
-      
+      canvas.height = window.innerHeight;
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(temp, 0, 0);
 
+      // Guardar el estado inicial en blanco en el historial
       const initialSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
       setHistory([initialSnapshot]);
     };
@@ -42,6 +40,7 @@ export default function App() {
     window.addEventListener("resize", resizeCanvas);
     loadDrawings();
 
+    // Escuchar el atajo de teclado Ctrl + Z
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -58,27 +57,12 @@ export default function App() {
 
   const getPosition = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    
-    // Soporte nativo para eventos Touch (móviles) y Mouse (escritorio)
-    let clientX, clientY;
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-      clientX = e.changedTouches[0].clientX;
-      clientY = e.changedTouches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const startDrawing = (e) => {
-    // Previene el scroll o refresco por arrastre en móviles
-    if (e.cancelable) e.preventDefault();
-    
     const pos = getPosition(e);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -98,12 +82,11 @@ export default function App() {
 
   const draw = (e) => {
     if (!drawing) return;
-    if (e.cancelable) e.preventDefault(); // Evita scroll molesto al dibujar
-
     const pos = getPosition(e);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
+    // Restaurar el lienzo para las figuras dinámicas
     if (tool !== "brush" && tool !== "eraser") {
       ctx.putImageData(snapshot, 0, 0);
     }
@@ -130,9 +113,9 @@ export default function App() {
       ctx.stroke();
     } else if (tool === "triangle") {
       ctx.beginPath();
-      ctx.moveTo(startPos.x, startPos.y);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.lineTo(startPos.x - (pos.x - startPos.x), pos.y);
+      ctx.moveTo(startPos.x, startPos.y); // Cúspide / Inicio
+      ctx.lineTo(pos.x, pos.y); // Esquina inferior derecha
+      ctx.lineTo(startPos.x - (pos.x - startPos.x), pos.y); // Esquina inferior izquierda simétrica
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -159,29 +142,35 @@ export default function App() {
     }
   };
 
-  const stopDrawing = (e) => {
+  const stopDrawing = () => {
     if (!drawing) return;
     setDrawing(false);
 
+    // Guardar el nuevo estado del lienzo en el historial local al soltar el clic
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const newSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
     setHistory((prev) => [...prev, newSnapshot]);
   };
 
+  // 🔄 Lógica de Deshacer (Undo)
   const undo = () => {
-    if (history.length <= 1) return;
+    if (history.length <= 1) return; // No podemos deshacer más allá del lienzo en blanco inicial
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+    
     const newHistory = [...history];
-    newHistory.pop();
-    const previousSnapshot = newHistory[newHistory.length - 1];
+    newHistory.pop(); // Removemos el estado actual del lienzo
+    const previousSnapshot = newHistory[newHistory.length - 1]; // Tomamos el anterior
+
     ctx.putImageData(previousSnapshot, 0, 0);
     setHistory(newHistory);
   };
 
   const applyCrop = () => {
     if (!cropArea || cropArea.width === 0 || cropArea.height === 0) return;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
@@ -194,12 +183,13 @@ export default function App() {
       cropArea.x, cropArea.y, cropArea.width, cropArea.height
     );
 
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    clearCanvas();
     ctx.putImageData(croppedImageData, 0, 0);
 
+    // Guardar el estado recortado en el historial
     const croppedSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
     setHistory((prev) => [...prev, croppedSnapshot]);
+
     setCropArea(null);
     setTool("brush");
   };
@@ -210,6 +200,7 @@ export default function App() {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     setCropArea(null);
+    
     const blankSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
     setHistory((prev) => [...prev, blankSnapshot]);
   };
@@ -227,49 +218,53 @@ export default function App() {
   };
 
   return (
-    <div style={{ background: "#f0f0f0", minHeight: "100vh", fontFamily: "sans-serif", overflow: "hidden" }}>
-      
-      {/* Toolbar Flexible y Responsiva */}
+    <div style={{ background: "#f0f0f0", minHeight: "100vh", fontFamily: "sans-serif" }}>
       <div style={{
           position: "fixed", top: 0, left: 0, width: "100%", height: "60px",
           background: "white", display: "flex", alignItems: "center",
-          padding: "0 10px", gap: "8px", borderBottom: "1px solid #ccc", zIndex: 1000,
-          overflowX: "auto", whiteSpace: "nowrap" // Permite scroll horizontal si los botones no caben
+          padding: "0 15px", gap: "10px", borderBottom: "1px solid #ccc", zIndex: 1000
         }}>
-        
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} disabled={tool === "eraser" || tool === "crop"} style={{ minWidth: "35px", height: "35px", padding: 0, border: "none", borderRadius: "4px" }} />
-        <input type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(e.target.value)} disabled={tool === "crop"} style={{ width: "70px" }} />
+        <strong>Paint Fill Pro</strong>
 
-        <button onClick={() => setTool("brush")} style={btnStyle(tool === "brush")}>✏️</button>
-        <button onClick={() => setTool("eraser")} style={btnStyle(tool === "eraser")}>🧽</button>
+        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} disabled={tool === "eraser" || tool === "crop"} />
+        <input type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(e.target.value)} disabled={tool === "crop"} />
+
+        <button onClick={() => setTool("brush")} style={btnStyle(tool === "brush")}>✏️ Pincel</button>
+        <button onClick={() => setTool("eraser")} style={btnStyle(tool === "eraser")}>🧽 Borrador</button>
         
+        {/* 📐 Menú desplegable para múltiples figuras */}
         <select 
           value={["rect", "circle", "triangle", "line"].includes(tool) ? tool : "shapes"} 
           onChange={(e) => setTool(e.target.value)}
-          style={{ padding: "8px 4px", borderRadius: "4px", border: "1px solid #ccc", background: "white", fontSize: "14px" }}
+          style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc", cursor: "pointer" }}
         >
           <option value="shapes" disabled>📐 Figuras</option>
-          <option value="rect">⬛ Rect</option>
-          <option value="circle">⭕ Círc</option>
-          <option value="triangle">🔺 Tria</option>
-          <option value="line">➖ Línea</option>
+          <option value="rect">⬛ Rectángulo</option>
+          <option value="circle">⭕ Círculo</option>
+          <option value="triangle">🔺 Triángulo</option>
+          <option value="line">➖ Línea Recta</option>
         </select>
         
-        <button onClick={() => setTool("crop")} style={btnStyle(tool === "crop")}>✂️</button>
+        <button onClick={() => setTool("crop")} style={btnStyle(tool === "crop")}>✂️ Recortar</button>
         
         {tool === "crop" && cropArea && (
-          <button onClick={applyCrop} style={{...btnStyle(false), background: "#28a745", color: "white"}}>✔️</button>
+          <button onClick={applyCrop} style={{...btnStyle(false), background: "#28a745", color: "white"}}>✔️ Confirmar</button>
         )}
 
-        <button onClick={undo} disabled={history.length <= 1} style={{...btnStyle(false), opacity: history.length <= 1 ? 0.5 : 1}}>↩️</button>
+        {/* ↩️ Botón Deshacer (Ctrl + Z) */}
+        <button 
+          onClick={undo} 
+          disabled={history.length <= 1}
+          style={{...btnStyle(false), opacity: history.length <= 1 ? 0.5 : 1}}
+          title="Deshacer (Ctrl + Z)"
+        >
+          ↩️ Deshacer
+        </button>
+
         <button onClick={clearCanvas} style={btnStyle(false)}>🗑️</button>
         <button onClick={saveToDatabase} style={btnStyle(false)}>☁️</button>
-        
-        {/* Botón para abrir la galería en móvil */}
-        <button onClick={() => setShowGallery(!showGallery)} style={btnStyle(showGallery)}>🖼️ ({drawings.length})</button>
       </div>
 
-      {/* Canvas */}
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -282,30 +277,13 @@ export default function App() {
         style={{ 
           display: "block", marginTop: "60px", 
           width: "100vw", height: "calc(100vh - 60px)", 
-          touchAction: "none" // Bloquea gestos del navegador (zoom/scroll) obligatoriamente
+          touchAction: "none", 
+          cursor: tool === "crop" ? "nwse-resize" : "crosshair" 
         }}
       />
 
-      {/* Galería Lateral Colapsable (Responsiva) */}
-      <div style={{ 
-        position: "fixed", 
-        right: 0, 
-        top: "60px", 
-        width: "160px", 
-        height: "calc(100vh - 60px)", 
-        background: "#fff", 
-        borderLeft: "1px solid #ccc", 
-        padding: 10, 
-        overflowY: "auto", 
-        zIndex: 1001,
-        transition: "transform 0.3s ease",
-        // En móviles se esconde hacia la derecha si showGallery es false
-        transform: showGallery ? "translateX(0)" : "translateX(100%)"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <h4 style={{ margin: 0 }}>Galería</h4>
-          <button onClick={() => setShowGallery(false)} style={{ border: "none", background: "transparent", fontSize: "16px", cursor: "pointer" }}>❌</button>
-        </div>
+      <div style={{ position: "fixed", right: 0, top: "60px", width: "160px", height: "calc(100vh - 60px)", background: "#fff", borderLeft: "1px solid #ccc", padding: 10, overflowY: "auto" }}>
+        <h4 style={{ margin: "0 0 10px 0" }}>Galería</h4>
         {drawings.map((d, i) => (
           <img key={i} src={d.image} width="100%" style={{ marginBottom: 10, borderRadius: "4px", boxShadow: "0 2px 5px rgba(0,0,0,0.1)" }} alt="saved" />
         ))}
@@ -315,14 +293,14 @@ export default function App() {
 }
 
 const btnStyle = (active) => ({
-  padding: "8px 10px",
+  padding: "8px 12px",
   border: "1px solid #ccc",
   borderRadius: "4px",
   background: active ? "#007bff" : "white",
   color: active ? "white" : "black",
-  fontSize: "16px",
-  display: "inline-flex",
+  cursor: "pointer",
+  fontSize: "14px",
+  display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer"
+  gap: "5px"
 });
