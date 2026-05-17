@@ -7,11 +7,14 @@ export default function App() {
   const [drawing, setDrawing] = useState(false);
   const [color, setColor] = useState("#000000");
   const [brushSize, setBrushSize] = useState(5);
-  const [tool, setTool] = useState("brush"); // "brush", "eraser", "rect", "circle", "crop"
+  const [tool, setTool] = useState("brush"); // "brush", "eraser", "rect", "circle", "triangle", "line", "crop"
   const [drawings, setDrawings] = useState([]);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [snapshot, setSnapshot] = useState(null);
-  const [cropArea, setCropArea] = useState(null); // Guarda el área de recorte temporal
+  const [cropArea, setCropArea] = useState(null);
+
+  // 🔄 Estados para el Historial (Ctrl + Z)
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const resizeCanvas = () => {
@@ -27,12 +30,29 @@ export default function App() {
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(temp, 0, 0);
+
+      // Guardar el estado inicial en blanco en el historial
+      const initialSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      setHistory([initialSnapshot]);
     };
 
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
     loadDrawings();
-    return () => window.removeEventListener("resize", resizeCanvas);
+
+    // Escuchar el atajo de teclado Ctrl + Z
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const getPosition = (e) => {
@@ -49,8 +69,10 @@ export default function App() {
 
     setStartPos(pos);
     setDrawing(true);
-    setSnapshot(ctx.getImageData(0, 0, canvas.width, canvas.height));
-    setCropArea(null); // Limpiar recorte previo si existe
+    
+    const currentSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setSnapshot(currentSnapshot);
+    setCropArea(null);
 
     if (tool === "brush" || tool === "eraser") {
       ctx.beginPath();
@@ -64,8 +86,8 @@ export default function App() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // Para figuras y recorte, necesitamos restaurar el snapshot constantemente
-    if (tool === "rect" || tool === "circle" || tool === "crop") {
+    // Restaurar el lienzo para las figuras dinámicas
+    if (tool !== "brush" && tool !== "eraser") {
       ctx.putImageData(snapshot, 0, 0);
     }
 
@@ -89,17 +111,28 @@ export default function App() {
       ctx.arc(startPos.x, startPos.y, radius, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
+    } else if (tool === "triangle") {
+      ctx.beginPath();
+      ctx.moveTo(startPos.x, startPos.y); // Cúspide / Inicio
+      ctx.lineTo(pos.x, pos.y); // Esquina inferior derecha
+      ctx.lineTo(startPos.x - (pos.x - startPos.x), pos.y); // Esquina inferior izquierda simétrica
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (tool === "line") {
+      ctx.beginPath();
+      ctx.moveTo(startPos.x, startPos.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
     } else if (tool === "crop") {
-      // Dibujar el rectángulo de selección de recorte (línea discontinua)
-      ctx.strokeStyle = "#007bff"; // Azul para la selección
+      ctx.strokeStyle = "#007bff";
       ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]); // Línea discontinua
+      ctx.setLineDash([5, 5]);
       const width = pos.x - startPos.x;
       const height = pos.y - startPos.y;
       ctx.strokeRect(startPos.x, startPos.y, width, height);
-      ctx.setLineDash([]); // Restaurar línea sólida
+      ctx.setLineDash([]);
 
-      // Guardar el área seleccionada temporalmente
       setCropArea({
         x: Math.min(startPos.x, pos.x),
         y: Math.min(startPos.y, pos.y),
@@ -110,24 +143,37 @@ export default function App() {
   };
 
   const stopDrawing = () => {
+    if (!drawing) return;
     setDrawing(false);
-    // Si la herramienta es recorte y se seleccionó un área, podrías
-    // mostrar un botón de "Confirmar Recorte" aquí. Para simplificar,
-    // el recorte se aplicará cuando el usuario presione un botón extra en la barra.
+
+    // Guardar el nuevo estado del lienzo en el historial local al soltar el clic
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const newSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory((prev) => [...prev, newSnapshot]);
   };
 
-  // Función para aplicar el recorte seleccionado
+  // 🔄 Lógica de Deshacer (Undo)
+  const undo = () => {
+    if (history.length <= 1) return; // No podemos deshacer más allá del lienzo en blanco inicial
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    
+    const newHistory = [...history];
+    newHistory.pop(); // Removemos el estado actual del lienzo
+    const previousSnapshot = newHistory[newHistory.length - 1]; // Tomamos el anterior
+
+    ctx.putImageData(previousSnapshot, 0, 0);
+    setHistory(newHistory);
+  };
+
   const applyCrop = () => {
-    if (!cropArea || cropArea.width === 0 || cropArea.height === 0) {
-      alert("Por favor, selecciona un área para recortar primero.");
-      return;
-    }
+    if (!cropArea || cropArea.width === 0 || cropArea.height === 0) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    // 1. Capturar los píxeles del área seleccionada del snapshot original
-    // (usamos el snapshot para no incluir las líneas discontinuas de selección)
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
@@ -137,17 +183,15 @@ export default function App() {
       cropArea.x, cropArea.y, cropArea.width, cropArea.height
     );
 
-    // 2. Limpiar el canvas principal y rellenarlo de blanco
     clearCanvas();
-
-    // 3. Dibujar la imagen recortada de vuelta en el canvas principal
-    // (la dibujamos en la esquina superior izquierda 0,0)
     ctx.putImageData(croppedImageData, 0, 0);
 
-    // 4. Limpiar el estado de recorte
+    // Guardar el estado recortado en el historial
+    const croppedSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory((prev) => [...prev, croppedSnapshot]);
+
     setCropArea(null);
-    setTool("brush"); // Volver al pincel después de recortar
-    alert("Imagen recortada. Nota: El tamaño del lienzo no cambió, solo se movió el contenido.");
+    setTool("brush");
   };
 
   const clearCanvas = () => {
@@ -155,7 +199,10 @@ export default function App() {
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    setCropArea(null); // Limpiar recorte si se limpia el lienzo
+    setCropArea(null);
+    
+    const blankSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    setHistory((prev) => [...prev, blankSnapshot]);
   };
 
   const saveToDatabase = async () => {
@@ -182,18 +229,37 @@ export default function App() {
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} disabled={tool === "eraser" || tool === "crop"} />
         <input type="range" min="1" max="50" value={brushSize} onChange={(e) => setBrushSize(e.target.value)} disabled={tool === "crop"} />
 
-        <button onClick={() => setTool("brush")} style={btnStyle(tool === "brush")}>✏️</button>
-        <button onClick={() => setTool("eraser")} style={btnStyle(tool === "eraser")}>🧽</button>
-        <button onClick={() => setTool("rect")} style={btnStyle(tool === "rect")}>⬛</button>
-        <button onClick={() => setTool("circle")} style={btnStyle(tool === "circle")}>⭕</button>
+        <button onClick={() => setTool("brush")} style={btnStyle(tool === "brush")}>✏️ Pincel</button>
+        <button onClick={() => setTool("eraser")} style={btnStyle(tool === "eraser")}>🧽 Borrador</button>
         
-        {/* Nueva herramienta de recorte */}
+        {/* 📐 Menú desplegable para múltiples figuras */}
+        <select 
+          value={["rect", "circle", "triangle", "line"].includes(tool) ? tool : "shapes"} 
+          onChange={(e) => setTool(e.target.value)}
+          style={{ padding: "8px", borderRadius: "4px", border: "1px solid #ccc", cursor: "pointer" }}
+        >
+          <option value="shapes" disabled>📐 Figuras</option>
+          <option value="rect">⬛ Rectángulo</option>
+          <option value="circle">⭕ Círculo</option>
+          <option value="triangle">🔺 Triángulo</option>
+          <option value="line">➖ Línea Recta</option>
+        </select>
+        
         <button onClick={() => setTool("crop")} style={btnStyle(tool === "crop")}>✂️ Recortar</button>
         
-        {/* Botón para aplicar el recorte */}
         {tool === "crop" && cropArea && (
           <button onClick={applyCrop} style={{...btnStyle(false), background: "#28a745", color: "white"}}>✔️ Confirmar</button>
         )}
+
+        {/* ↩️ Botón Deshacer (Ctrl + Z) */}
+        <button 
+          onClick={undo} 
+          disabled={history.length <= 1}
+          style={{...btnStyle(false), opacity: history.length <= 1 ? 0.5 : 1}}
+          title="Deshacer (Ctrl + Z)"
+        >
+          ↩️ Deshacer
+        </button>
 
         <button onClick={clearCanvas} style={btnStyle(false)}>🗑️</button>
         <button onClick={saveToDatabase} style={btnStyle(false)}>☁️</button>
