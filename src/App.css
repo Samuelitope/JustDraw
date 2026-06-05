@@ -83,3 +83,14 @@
   object-fit: contain; /* Ajusta el lienzo visualmente al tamaño de pantalla */
   touch-action: none;  /* 🚫 CRUCIAL: Bloquea el scroll del sistema al dibujar con el dedo */
 }
+
+.shape-select {
+  background-color: #3a3a3a;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}

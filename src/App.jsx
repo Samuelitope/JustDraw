@@ -4,28 +4,33 @@ import Toolbar from './components/Toolbar';
 import './App.css';
 
 function App() {
-  // Estados globales que comparten la barra y el lienzo
   const [color, setColor] = useState('#000000');
   const [thickness, setThickness] = useState(5);
-  const [tool, setTool] = useState('brush'); // 'brush' o 'eraser'
+  const [tool, setTool] = useState('brush'); // 'brush', 'eraser', 'shape', 'crop'
+  const [shape, setShape] = useState('rectangle'); // 'rectangle', 'circle', 'line'
+  
+  // Triggers para comunicar acciones de la Toolbar al Canvas
+  const [undoTrigger, setUndoTrigger] = useState(0);
+  const [redoTrigger, setRedoTrigger] = useState(0);
 
   return (
     <div className="paint-app">
-      {/* La barra de herramientas modifica los estados */}
       <Toolbar 
-        color={color} 
-        setColor={setColor} 
-        thickness={thickness} 
-        setThickness={setThickness}
-        tool={tool}
-        setTool={setTool}
+        color={color} setColor={setColor} 
+        thickness={thickness} setThickness={setThickness}
+        tool={tool} setTool={setTool}
+        shape={shape} setShape={setShape}
+        onUndo={() => setUndoTrigger(prev => prev + 1)}
+        onRedo={() => setRedoTrigger(prev => prev + 1)}
       />
       
-      {/* El lienzo lee los estados para saber cómo pintar */}
       <Canvas 
         color={color} 
         thickness={thickness}
         tool={tool}
+        shape={shape}
+        undoTrigger={undoTrigger}
+        redoTrigger={redoTrigger}
       />
     </div>
   );
