@@ -17,6 +17,13 @@ function Toolbar({
         <button onClick={onClear} title="Borrar todo el lienzo" className="retro-btn clear-btn">Limpiar [Alt+L]</button>
         <button onClick={onSave} className="retro-btn save-btn" title="Guardar dibujo en el historial visual">Guardar [Ctrl+S]</button>      
       </div>
+    <div className="retro-field">
+      <label>Hoja:</label>
+      <select value={orientation} onChange={(e) => setOrientation(e.target.value)} className="retro-select">
+        <option value="horizontal">Horizontal (800x600)</option>
+        <option value="vertical">Vertical (600x800)</option>
+      </select>
+    </div>
 
       <div className="toolbar-section">
         <span className="section-title">Edición</span>

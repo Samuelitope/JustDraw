@@ -7,6 +7,7 @@ function Canvas({
   shape, 
   font, 
   scale, 
+  orientation,
   undoTrigger, 
   redoTrigger, 
   clearTrigger, 
@@ -14,28 +15,64 @@ function Canvas({
   onExportImage 
 }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
   const [startCoords, setStartCoords] = useState({ x: 0, y: 0 });
   const [snapshot, setSnapshot] = useState(null);
 
-  // Marcas numéricas para las reglas (cada 50px)
-  const ruleTicksX = Array.from({ length: 17 }, (_, i) => i * 50);
-  const ruleTicksY = Array.from({ length: 13 }, (_, i) => i * 50);
+  // Dimensiones dinámicas de la hoja controladas por el usuario
+  const [canvasWidth, setCanvasWidth] = useState(orientation === 'horizontal' ? 800 : 600);
+  const [canvasHeight, setCanvasHeight] = useState(orientation === 'horizontal' ? 600 : 800);
+  const [isResizing, setIsResizing] = useState(false);
 
-  // Inicializar lienzo y guardar estado base
+  // Escuchar el cambio de módulo de orientación externa (Toolbar)
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      saveToHistory();
+    if (orientation === 'horizontal') {
+      setCanvasWidth(800);
+      setCanvasHeight(600);
+    } else {
+      setCanvasWidth(600);
+      setCanvasHeight(800);
     }
-  }, []);
+    setTimeout(() => handleClear(), 50);
+  }, [orientation]);
 
-  // Escuchadores de disparadores globales desde App.jsx
+  // Generar reglas adaptativas según el tamaño actual de la hoja
+  const ruleTicksX = Array.from({ length: Math.ceil(canvasWidth / 50) + 1 }, (_, i) => i * 50);
+  const ruleTicksY = Array.from({ length: Math.ceil(canvasHeight / 50) + 1 }, (_, i) => i * 50);
+
+  useEffect(() => {
+    handleClear();
+    
+    // 📋 EVENTO: Pegar imágenes mediante CTRL+V
+    const handlePaste = (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+              const ctx = canvasRef.current.getContext('2d');
+              // Dibuja la imagen pegada en la esquina superior izquierda del lienzo
+              ctx.drawImage(img, 0, 0, img.width > canvasWidth ? canvasWidth : img.width, img.height > canvasHeight ? canvasHeight : img.height);
+              saveToHistory();
+            };
+            img.src = event.target.result;
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [canvasWidth, canvasHeight]);
+
   useEffect(() => { if (undoTrigger > 0) handleUndo(); }, [undoTrigger]);
   useEffect(() => { if (redoTrigger > 0) handleRedo(); }, [redoTrigger]);
   useEffect(() => { if (clearTrigger > 0) handleClear(); }, [clearTrigger]);
@@ -77,13 +114,14 @@ function Canvas({
 
   const handleClear = () => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     saveToHistory();
   };
 
-  // Algoritmo Flood Fill (Balde de Pintura para áreas cerradas)
+  // Algoritmo de relleno (Flood Fill)
   const floodFill = (startX, startY, fillColor) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -108,10 +146,7 @@ function Canvas({
     const targetColor = getPixelColor(startX, startY);
     const fillRGB = hexToRgb(fillColor);
 
-    if (
-      targetColor.r === fillRGB.r && targetColor.g === fillRGB.g &&
-      targetColor.b === fillRGB.b && targetColor.a === fillRGB.a
-    ) return;
+    if (targetColor.r === fillRGB.r && targetColor.g === fillRGB.g && targetColor.b === fillRGB.b) return;
 
     const queue = [[startX, startY]];
 
@@ -157,6 +192,7 @@ function Canvas({
   };
 
   const startDrawing = (e) => {
+    if (isResizing) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const coords = getCoordinates(e);
@@ -218,58 +254,109 @@ function Canvas({
         ctx.lineTo(coords.x, coords.y);
         ctx.stroke();
       }
-    } else if (tool === 'crop') {
-      ctx.putImageData(snapshot, 0, 0);
-      ctx.strokeStyle = '#007acc';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(startCoords.x, startCoords.y, coords.x - startCoords.x, coords.y - startCoords.y);
-      ctx.setLineDash([]);
     }
   };
 
-  const stopDrawing = (e) => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    if (tool === 'crop') {
-      const coords = getCoordinates(e);
-      const width = coords.x - startCoords.x;
-      const height = coords.y - startCoords.y;
-
-      if (Math.abs(width) > 10 && Math.abs(height) > 10) {
-        ctx.putImageData(snapshot, 0, 0);
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = Math.abs(width);
-        tempCanvas.height = Math.abs(height);
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(canvas, startCoords.x, startCoords.y, width, height, 0, 0, width, height);
-        canvas.width = Math.abs(width);
-        canvas.height = Math.abs(height);
-        ctx.drawImage(tempCanvas, 0, 0);
-      }
+  const stopDrawing = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      saveToHistory();
     }
+  };
+
+  // 📐 GESTIÓN DEL RESIZE MANUAL DESDE LA ESQUINA
+  const initResize = (e) => {
+    e.preventDefault();
+    setIsResizing(true);
+    document.addEventListener('mousemove', startResize);
+    document.addEventListener('mouseup', stopResize);
+  };
+
+  const startResize = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculamos la nueva distancia basada en el movimiento del cursor dividido el zoom
+    const newWidth = Math.max(200, Math.floor((e.clientX - rect.left) / scale));
+    const newHeight = Math.max(200, Math.floor((e.clientY - rect.top) / scale));
+    
+    // Almacenamos temporalmente una captura para no borrar el contenido actual durante el rediseño dimensional
+    const tempContext = canvas.getContext('2d');
+    const backupData = tempContext.getImageData(0, 0, canvas.width, canvas.height);
+
+    setCanvasWidth(newWidth);
+    setCanvasHeight(newHeight);
+
+    // Re-estampamos los trazos viejos tras el cambio estructural en caliente
+    setTimeout(() => {
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, newWidth, newHeight);
+        ctx.putImageData(backupData, 0, 0);
+      }
+    }, 1);
+  };
+
+  const stopResize = () => {
+    setIsResizing(false);
+    document.removeEventListener('mousemove', startResize);
+    document.removeEventListener('mouseup', stopResize);
     saveToHistory();
+  };
+
+  // 📋 CONTEXT MENU (Clic derecho "Pegar" nativo simulado)
+  const handleContextMenu = async (e) => {
+    e.preventDefault();
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const img = new Image();
+              img.onload = () => {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                saveToHistory();
+              };
+              img.src = event.target.result;
+            };
+            reader.readAsDataURL(blob);
+          }
+        }
+      }
+    } catch (err) {
+      alert("Para usar clic derecho -> Pegar, otorga permisos de Portapapeles al navegador o usa CTRL+V.");
+    }
   };
 
   return (
     <div className="workspace-wrapper">
       <div className="ruler horizontal-ruler">
-        {ruleTicksX.map(tick => <span key={tick} style={{ left: `${tick}px` }}>{tick}</span>)}
+        {ruleTicksX.map(tick => <span key={tick} style={{ left: `${tick * scale}px` }}>{tick}</span>)}
       </div>
 
       <div className="ruler vertical-ruler">
-        {ruleTicksY.map(tick => <span key={tick} style={{ top: `${tick}px` }}>{tick}</span>)}
+        {ruleTicksY.map(tick => <span key={tick} style={{ top: `${tick * scale}px` }}>{tick}</span>)}
       </div>
 
-      <div className="canvas-container">
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', transition: 'transform 0.1s ease' }}>
+      <div className="canvas-container" ref={containerRef}>
+        <div 
+          className="retro-canvas-frame"
+          style={{ 
+            width: `${canvasWidth * scale}px`, 
+            height: `${canvasHeight * scale}px`,
+            position: 'relative'
+          }}
+        >
           <canvas
             ref={canvasRef}
-            width={800}
-            height={600}
+            width={canvasWidth}
+            height={canvasHeight}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -277,7 +364,16 @@ function Canvas({
             onTouchStart={startDrawing}
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
+            onContextMenu={handleContextMenu}
             className="paint-canvas"
+            style={{ width: '100%', height: '100%' }}
+          />
+          
+          {/* 🔲 Nodo Interactiva de Esquina para estirar la hoja (Resize Handler) */}
+          <div 
+            className="canvas-resize-handle"
+            onMouseDown={initResize}
+            title="Arrastra para cambiar el tamaño de la hoja"
           />
         </div>
       </div>

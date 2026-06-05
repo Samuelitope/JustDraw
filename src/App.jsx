@@ -11,6 +11,7 @@ function App() {
   const [shape, setShape] = useState('rectangle');
   const [font, setFont] = useState('Arial');
   const [scale, setScale] = useState(1);
+  const [orientation, setOrientation] = useState('horizontal'); // 'horizontal' o 'vertical'
   
   // Historial de imágenes guardadas visualmente
   const [savedImages, setSavedImages] = useState([]);
@@ -19,16 +20,17 @@ function App() {
   const [undoTrigger, setUndoTrigger] = useState(0);
   const [redoTrigger, setRedoTrigger] = useState(0);
   const [clearTrigger, setClearTrigger] = useState(0);
-  const [saveTrigger, setSaveTrigger] = useState(0); // Orden de guardado
+  const [saveTrigger, setSaveTrigger] = useState(0);
 
-  // Función que llamará el Canvas cuando termine de exportar la imagen
   const handleImageExported = (dataUrl) => {
-    // Agregamos la nueva miniatura al inicio de la lista
     setSavedImages(prevImages => [dataUrl, ...prevImages]);
   };
 
   return (
     <div className="paint-app">
+      {/* Añadimos un contenedor virtual para el cursor animado inteligente */}
+      <div className="retro-custom-cursor"></div>
+
       <Toolbar 
         color={color} setColor={setColor} 
         thickness={thickness} setThickness={setThickness}
@@ -36,22 +38,23 @@ function App() {
         shape={shape} setShape={setShape}
         font={font} setFont={setFont}
         scale={scale} setScale={setScale}
+        orientation={orientation} setOrientation={setOrientation}
         onUndo={() => setUndoTrigger(prev => prev + 1)}
         onRedo={() => setRedoTrigger(prev => prev + 1)}
         onClear={() => setClearTrigger(prev => prev + 1)}
-        onSave={() => setSaveTrigger(prev => prev + 1)} // Activa el guardado
+        onSave={() => setSaveTrigger(prev => prev + 1)}
       />
       
       <div className="main-workspace-layout">
         <Canvas 
           color={color} thickness={thickness}
           tool={tool} shape={shape} font={font} scale={scale}
+          orientation={orientation}
           undoTrigger={undoTrigger} redoTrigger={redoTrigger} 
           clearTrigger={clearTrigger} saveTrigger={saveTrigger}
           onExportImage={handleImageExported}
         />
         
-        {/* Desplegamos la galería en la parte inferior o lateral */}
         <SavedGallery savedImages={savedImages} />
       </div>
     </div>
