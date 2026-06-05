@@ -7,7 +7,8 @@ function Toolbar({
   shape, setShape,
   font, setFont,
   scale, setScale,
-  onUndo, onRedo, onClear
+  orientation, setOrientation,
+  onUndo, onRedo, onClear, onSave
 }) {
   return (
     <div className="toolbar retro-window">
