@@ -1,4 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "./firebase";
+
+useEffect(() => {
+  const fetchDrawings = async () => {
+    const q = query(collection(db, "drawings"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const urls = querySnapshot.docs.map(doc => doc.data().url);
+    setSavedImages(urls);
+  };
+  fetchDrawings();
+}, []);
 
 function Canvas({ color, thickness, tool, shape, font, scale, orientation, undoTrigger, redoTrigger, clearTrigger, saveTrigger, onExportImage }) {
   const canvasRef = useRef(null);
