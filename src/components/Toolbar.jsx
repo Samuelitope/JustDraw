@@ -10,57 +10,73 @@ function Toolbar({
   onUndo, onRedo, onClear
 }) {
   return (
-    <div className="toolbar">
-      {/* Historial */}
-      <button onClick={onUndo} title="Deshacer (Ctrl + Z)">↩️</button>
-      <button onClick={onRedo} title="Rehacer (Ctrl + Y)">↪️</button>
-      <button onClick={onClear} title="Borrar todo el lienzo" className="clear-btn">🗑️ Limpiar</button>
-
-      {/* Selectores Básicos */}
-      <input type="color" value={color} onChange={(e) => setColor(e.target.value)} title="Cambiar color del pincel" />
-      <input type="range" min="1" max="20" value={thickness} onChange={(e) => setThickness(Number(e.target.value))} title="Grosor de la herramienta" />
-
-      {/* Control de Zoom / Aumentar Hoja */}
-      <div className="zoom-control" title="Aumentar / Reducir tamaño de la hoja">
-        <span>🔍</span>
-        <select value={scale} onChange={(e) => setScale(Number(e.target.value))}>
-          <option value="0.5">50%</option>
-          <option value="1">100%</option>
-          <option value="1.5">150%</option>
-          <option value="2">200%</option>
-        </select>
+    <div className="toolbar retro-window">
+      {/* Barra de Título Estilo Win95 opcional en CSS */}
+      <div className="toolbar-section">
+        <span className="section-title">Archivo</span>
+        <button onClick={onClear} title="Borrar todo el lienzo" className="retro-btn clear-btn">Limpiar [Alt+L]</button>
+        <button onClick={onSave} className="retro-btn save-btn" title="Guardar dibujo en el historial visual">Guardar [Ctrl+S]</button>      
       </div>
 
-      {/* Herramientas Principales */}
-      <button className={tool === 'brush' ? 'active' : ''} onClick={() => setTool('brush')} title="Herramienta Pincel">静态🖌️ Pincel</button>
-      <button className={tool === 'eraser' ? 'active' : ''} onClick={() => setTool('eraser')} title="Herramienta Borrador">🧽 Borrador</button>
-      <button className={tool === 'fill' ? 'active' : ''} onClick={() => setTool('fill')} title="Bote de Pintura (Rellenar capa)">🪣 Relleno</button>
+      <div className="toolbar-section">
+        <span className="section-title">Edición</span>
+        <button onClick={onUndo} className="retro-btn" title="Deshacer">Deshacer</button>
+        <button onClick={onRedo} className="retro-btn" title="Rehacer">Rehacer</button>
+      </div>
+
+      <div className="toolbar-section">
+        <span className="section-title">Herramientas</span>
+        <button className={`retro-btn ${tool === 'brush' ? 'active' : ''}`} onClick={() => setTool('brush')} title="Pincel">Pincel</button>
+        <button className={`retro-btn ${tool === 'eraser' ? 'active' : ''}`} onClick={() => setTool('eraser')} title="Borrador">Borrador</button>
+        <button className={`retro-btn ${tool === 'fill' ? 'active' : ''}`} onClick={() => setTool('fill')} title="Bote de Pintura">Relleno</button>
+        <button className={`retro-btn ${tool === 'crop' ? 'active' : ''}`} onClick={() => setTool('crop')} title="Cortar selección">Recortar</button>
+      </div>
       
-      {/* Selector de Figuras */}
-      <button className={tool === 'shape' ? 'active' : ''} onClick={() => setTool('shape')} title="Dibujar Formas Geométricas">📐 Figuras</button>
-      {tool === 'shape' && (
-        <select value={shape} onChange={(e) => setShape(e.target.value)} className="select-dropdown">
-          <option value="rectangle">Rectángulo 🟦</option>
-          <option value="circle">Círculo ⭕</option>
-          <option value="line">Línea 📏</option>
-        </select>
-      )}
+      <div className="toolbar-section">
+        <span className="section-title">Formas</span>
+        <button className={`retro-btn ${tool === 'shape' ? 'active' : ''}`} onClick={() => setTool('shape')} title="Dibujar Formas">Figuras</button>
+        {tool === 'shape' && (
+          <select value={shape} onChange={(e) => setShape(e.target.value)} className="retro-select">
+            <option value="rectangle">Rectángulo</option>
+            <option value="circle">Círculo</option>
+            <option value="line">Línea</option>
+          </select>
+        )}
+      </div>
 
-      {/* Herramienta de Texto */}
-      <button className={tool === 'text' ? 'active' : ''} onClick={() => setTool('text')} title="Escribir texto en el lienzo">🔤 Texto</button>
-      {tool === 'text' && (
-        <select value={font} onChange={(e) => setFont(e.target.value)} className="select-dropdown" title="Cambiar tipo de letra">
-          <option value="Arial">Arial</option>
-          <option value="Courier New">Courier (Retro)</option>
-          <option value="Georgia">Georgia (Elegante)</option>
-          <option value="Impact">Impact (Fuerte)</option>
-        </select>
-      )}
+      <div className="toolbar-section">
+        <span className="section-title">Texto</span>
+        <button className={`retro-btn ${tool === 'text' ? 'active' : ''}`} onClick={() => setTool('text')} title="Escribir texto">Texto</button>
+        {tool === 'text' && (
+          <select value={font} onChange={(e) => setFont(e.target.value)} className="retro-select">
+            <option value="Arial">Arial</option>
+            <option value="Courier New">Courier (Terminal)</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Impact">Impact</option>
+          </select>
+        )}
+      </div>
 
-      {/* Herramienta de Recorte */}
-      <button className={tool === 'crop' ? 'active' : ''} onClick={() => setTool('crop')} title="Cortar selección del lienzo">✂️ Recortar</button>
-
-      <button className="save-btn" title="Subir dibujo a la nube">☁️ Guardar</button>
+      <div className="toolbar-section">
+        <span className="section-title">Configuración</span>
+        <div className="retro-field">
+          <label>Color:</label>
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="retro-color-picker" />
+        </div>
+        <div className="retro-field">
+          <label>Grosor:</label>
+          <input type="range" min="1" max="20" value={thickness} onChange={(e) => setThickness(Number(e.target.value))} className="retro-range" />
+        </div>
+        <div className="retro-field">
+          <label>Zoom:</label>
+          <select value={scale} onChange={(e) => setScale(Number(e.target.value))} className="retro-select">
+            <option value="0.5">50%</option>
+            <option value="1">100%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+          </select>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,18 +1,18 @@
-/* Contenedor principal estilo Escritorio Clásico */
+/* Contenedor principal estilo Escritorio Clásico de Windows 95 */
 .paint-app {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background-color: #008080; /* El mítico color verde azulado de fondo de Windows 95 */
+  background-color: #008080; /* Color verde azulado nostálgico */
   color: #000000;
-  font-family: "Courier New", Courier, monospace; /* Fuente retro estilo terminal */
+  font-family: "Courier New", Courier, monospace;
   font-size: 12px;
   overflow: hidden;
 }
 
-/* 🏢 La barra de herramientas se convierte en una ventana gris rígida */
+/* 🏢 Estructura de la Barra de Herramientas */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -21,19 +21,19 @@
   align-items: stretch;
   width: 100%;
   padding: 6px;
-  background-color: #d4d0c8; /* Gris institucional clásico */
+  background-color: #d4d0c8; /* Gris Win95 base */
   border-bottom: 2px solid #ffffff;
   box-shadow: inset 1px 1px 0px #ffffff, 0px 2px 2px #404040;
   box-sizing: border-box;
 }
 
-/* Secciones divisoras dentro de la barra */
+/* Secciones organizadoras */
 .toolbar-section {
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 2px inset #ffffff; /* Efecto hundido para agrupar */
-  padding: 6px;
+  border: 2px inset #ffffff;
+  padding: 8px 6px 6px 6px;
   background-color: #d4d0c8;
   position: relative;
 }
@@ -49,12 +49,12 @@
   color: #404040;
 }
 
-/* 🔘 El botón gris clásico con relieve 3D */
+/* 🔘 Botones con relieve 3D Rígido */
 .retro-btn {
   background-color: #d4d0c8;
   color: #000000;
   border: 2px solid;
-  border-color: #ffffff #404040 #404040 #ffffff; /* Efecto relieve de botón levantado */
+  border-color: #ffffff #404040 #404040 #ffffff;
   padding: 4px 10px;
   font-family: inherit;
   font-size: 11px;
@@ -62,15 +62,15 @@
   box-shadow: 1px 1px 0px #000000;
 }
 
-/* Efecto cuando el botón está presionado o activo */
+/* Efecto presionado / Activo */
 .retro-btn:active, .retro-btn.active {
-  border-color: #404040 #ffffff #ffffff #404040; /* Invierte los bordes para simular hundido */
+  border-color: #404040 #ffffff #ffffff #404040;
   box-shadow: inset 1px 1px 1px #000000;
   background-color: #e6e6e6;
-  padding: 5px 9px 3px 11px; /* Desplazamiento sutil del texto típico de Win95 */
+  padding: 5px 9px 3px 11px;
 }
 
-/* Selectores desplegables retros */
+/* Selectores Clásicos */
 .retro-select {
   background-color: #ffffff;
   color: #000000;
@@ -81,7 +81,7 @@
   outline: none;
 }
 
-/* Campos de entrada */
+/* Contenedores de inputs */
 .retro-field {
   display: flex;
   align-items: center;
@@ -98,12 +98,26 @@
   cursor: pointer;
 }
 
-/* 🖼️ El Espacio de Trabajo */
+.retro-range {
+  width: 80px;
+}
+
+/* 🖼️ Espacio de Trabajo Adaptativo */
+.main-workspace-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  align-items: center;
+}
+
 .workspace-wrapper {
   position: relative;
   flex: 1;
   width: 100%;
   height: 100%;
+  min-height: 640px;
   padding-top: 20px;
   padding-left: 20px;
   box-sizing: border-box;
@@ -111,10 +125,25 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #3b6161; /* Contraste oscuro para el fondo del lienzo */
+  background-color: #3b6161;
 }
 
-/* Reglas métricas clásicas */
+/* Contenedor estricto del lienzo */
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.paint-canvas {
+  background-color: #ffffff;
+  border: 3px inset #ffffff;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.4);
+  touch-action: none;
+}
+
+/* 📐 Reglas Métricas */
 .ruler {
   position: absolute;
   background-color: #d4d0c8;
@@ -132,6 +161,12 @@
   border-bottom: 2px solid #404040;
 }
 
+.horizontal-ruler span {
+  position: absolute;
+  transform: translateX(-50%);
+  padding-top: 2px;
+}
+
 .vertical-ruler {
   top: 20px;
   left: 0;
@@ -140,17 +175,89 @@
   border-right: 2px solid #404040;
 }
 
-/* El lienzo simula ser una hoja de papel física enmarcada */
-.paint-canvas {
-  background-color: #ffffff;
-  border: 3px inset #ffffff;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.4);
-  touch-action: none;
+.vertical-ruler span {
+  position: absolute;
+  transform: translateY(-50%);
+  padding-left: 2px;
+  display: block;
 }
 
-/* Botones especiales de alerta */
+/* 🗂️ Galería de Capturas Históricas */
+.gallery-window {
+  width: 95%;
+  max-width: 840px;
+  background-color: #d4d0c8;
+  border: 2px solid;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  margin: 15px 0;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+}
+
+.window-title-bar {
+  background: linear-gradient(90deg, #000080, #1084d0);
+  padding: 4px 6px;
+  color: white;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.gallery-container {
+  display: flex;
+  gap: 15px;
+  padding: 10px;
+  overflow-x: auto;
+  background-color: #ffffff;
+  border: 2px inset #ffffff;
+  box-shadow: inset 1px 1px 2px #404040;
+  min-height: 110px;
+}
+
+.empty-gallery-text {
+  color: #888888;
+  font-style: italic;
+  align-self: center;
+  width: 100%;
+  text-align: center;
+}
+
+.gallery-item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #d4d0c8;
+  padding: 6px;
+  border: 1px solid #808080;
+  min-width: 100px;
+}
+
+.image-frame-inset {
+  border: 2px inset #ffffff;
+  background-color: #7f7f7f;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 90px;
+  height: 70px;
+  overflow: hidden;
+}
+
+.gallery-thumb {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background-color: #ffffff;
+}
+
+.gallery-item-label {
+  font-size: 10px;
+  margin-top: 4px;
+  color: #000000;
+  text-align: center;
+}
+
+/* Clases de utilidad */
 .clear-btn {
-  color: #800000; /* Texto rojo oscuro retro */
+  color: #800000;
 }
 .save-btn {
   font-weight: bold;
