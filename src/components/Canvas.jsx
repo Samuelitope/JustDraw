@@ -1,32 +1,27 @@
 import { useRef, useEffect, useState } from 'react';
 
-function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
+function Canvas({ color, thickness, tool, shape, font, scale, undoTrigger, redoTrigger, clearTrigger }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  
-  // Historial de estados (Undo / Redo)
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
-  
-  // Coordenadas iniciales para Figuras y Recorte
   const [startCoords, setStartCoords] = useState({ x: 0, y: 0 });
   const [snapshot, setSnapshot] = useState(null);
 
-  // Guardar estado inicial al cargar el Canvas
-  useEffect(() => {
-    saveToHistory();
-  }, []);
+  // Arrays para renderizar los números de las reglas (marcas cada 50px)
+  const ruleTicksX = Array.from({ length: 17 }, (_, i) => i * 50);
+  const ruleTicksY = Array.from({ length: 13 }, (_, i) => i * 50);
 
-  // Escuchar acciones de Deshacer / Rehacer desde la Toolbar
+  useEffect(() => { saveToHistory(); }, []);
   useEffect(() => { if (undoTrigger > 0) handleUndo(); }, [undoTrigger]);
   useEffect(() => { if (redoTrigger > 0) handleRedo(); }, [redoTrigger]);
+  useEffect(() => { if (clearTrigger > 0) handleClear(); }, [clearTrigger]);
 
   const saveToHistory = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
     const newHistory = history.slice(0, historyStep + 1);
     setHistory([...newHistory, imgData]);
     setHistoryStep(newHistory.length);
@@ -50,13 +45,32 @@ function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
     }
   };
 
+  const handleClear = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveToHistory();
+  };
+
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+    
+    let clientX, clientY;
     if (e.touches && e.touches.length > 0) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+    // 🔍 AJUSTE CRUCIAL: Dividimos la distancia por la escala (scale) para mantener el cursor en su sitio exacto bajo zoom
+    return {
+      x: (clientX - rect.left) / scale,
+      y: (clientY - rect.top) / scale
+    };
   };
 
   const startDrawing = (e) => {
@@ -65,9 +79,28 @@ function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
     const coords = getCoordinates(e);
     
     setStartCoords(coords);
-    setIsDrawing(true);
 
-    // Tomamos una captura del canvas actual para la vista previa dinámica
+    if (tool === 'fill') {
+      // 🪣 Bote de pintura rápido en todo el lienzo (se puede expandir a flood-fill por pixeles)
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      saveToHistory();
+      return;
+    }
+
+    if (tool === 'text') {
+      // 🔤 Herramienta de Escritura
+      const textInput = prompt("Introduce el texto que deseas colocar:");
+      if (textInput) {
+        ctx.fillStyle = color;
+        ctx.font = `${thickness * 3}px ${font}`;
+        ctx.fillText(textInput, coords.x, coords.y);
+        saveToHistory();
+      }
+      return;
+    }
+
+    setIsDrawing(true);
     setSnapshot(ctx.getImageData(0, 0, canvas.width, canvas.height));
 
     if (tool === 'brush' || tool === 'eraser') {
@@ -90,11 +123,10 @@ function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
       ctx.lineTo(coords.x, coords.y);
       ctx.stroke();
     } else if (tool === 'shape') {
-      ctx.putImageData(snapshot, 0, 0); // Limpiar vista previa anterior
+      ctx.putImageData(snapshot, 0, 0);
       ctx.strokeStyle = color;
       ctx.lineWidth = thickness;
       ctx.beginPath();
-      
       if (shape === 'rectangle') {
         ctx.strokeRect(startCoords.x, startCoords.y, coords.x - startCoords.x, coords.y - startCoords.y);
       } else if (shape === 'circle') {
@@ -110,9 +142,9 @@ function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
       ctx.putImageData(snapshot, 0, 0);
       ctx.strokeStyle = '#007acc';
       ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]); // Línea punteada de selección
+      ctx.setLineDash([5, 5]);
       ctx.strokeRect(startCoords.x, startCoords.y, coords.x - startCoords.x, coords.y - startCoords.y);
-      ctx.setLineDash([]); // Resetear
+      ctx.setLineDash([]);
     }
   };
 
@@ -123,48 +155,55 @@ function Canvas({ color, thickness, tool, shape, undoTrigger, redoTrigger }) {
     const ctx = canvas.getContext('2d');
 
     if (tool === 'crop') {
-      // ✂️ Lógica de Recorte
       const coords = getCoordinates(e);
       const width = coords.x - startCoords.x;
       const height = coords.y - startCoords.y;
 
       if (Math.abs(width) > 10 && Math.abs(height) > 10) {
-        ctx.putImageData(snapshot, 0, 0); // Quitar cuadro punteado visual
-        
-        // Crear un canvas temporal con el tamaño exacto del recorte
+        ctx.putImageData(snapshot, 0, 0);
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = Math.abs(width);
         tempCanvas.height = Math.abs(height);
         const tempCtx = tempCanvas.getContext('2d');
-
-        // Copiar el fragmento seleccionado al canvas temporal
         tempCtx.drawImage(canvas, startCoords.x, startCoords.y, width, height, 0, 0, width, height);
-        
-        // Reajustar el canvas principal al nuevo tamaño recortado
         canvas.width = Math.abs(width);
         canvas.height = Math.abs(height);
         ctx.drawImage(tempCanvas, 0, 0);
       }
     }
-    
     saveToHistory();
   };
 
   return (
-    <div className="canvas-container">
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={600}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
-        className="paint-canvas"
-      />
+    <div className="workspace-wrapper">
+      {/* 📏 Regla Horizontal */}
+      <div className="ruler horizontal-ruler">
+        {ruleTicksX.map(tick => <span key={tick} style={{ left: `${tick}px` }}>{tick}</span>)}
+      </div>
+
+      {/* 📏 Regla Vertical */}
+      <div className="ruler vertical-ruler">
+        {ruleTicksY.map(tick => <span key={tick} style={{ top: `${tick}px` }}>{tick}</span>)}
+      </div>
+
+      <div className="canvas-container">
+        {/* Aplicamos la transformación de escala CSS dinámicamente según el zoom elegido */}
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', transition: 'transform 0.1s ease' }}>
+          <canvas
+            ref={canvasRef}
+            width={800}
+            height={600}
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
+            className="paint-canvas"
+          />
+        </div>
+      </div>
     </div>
   );
 }

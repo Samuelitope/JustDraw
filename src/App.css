@@ -1,96 +1,157 @@
-/* Contenedor principal de la App */
+/* Contenedor principal estilo Escritorio Clásico */
 .paint-app {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100vw;
   height: 100vh;
-  background-color: #1a1a1a;
-  color: #ffffff;
-  font-family: sans-serif;
-  overflow: hidden; /* Evita que la pantalla rebote en móviles */
+  background-color: #008080; /* El mítico color verde azulado de fondo de Windows 95 */
+  color: #000000;
+  font-family: "Courier New", Courier, monospace; /* Fuente retro estilo terminal */
+  font-size: 12px;
+  overflow: hidden;
 }
 
-/* 📱 Barra de herramientas responsiva */
+/* 🏢 La barra de herramientas se convierte en una ventana gris rígida */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  align-items: center;
+  gap: 15px;
+  justify-content: flex-start;
+  align-items: stretch;
   width: 100%;
-  padding: 12px;
-  background-color: #262626;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  z-index: 10;
-}
-
-/* Inputs y botones estilizados para pantallas táctiles */
-.toolbar input[type="color"] {
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.toolbar input[type="range"] {
-  width: 120px;
-}
-
-.toolbar button {
-  background-color: #3a3a3a;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  -webkit-tap-highlight-color: transparent; /* Quita el destello azul en móvil */
-}
-
-.toolbar button:active, .toolbar button.active {
-  background-color: #007acc;
-  font-weight: bold;
-}
-
-.toolbar .save-btn {
-  background-color: #28a745;
-}
-
-.toolbar .save-btn:active {
-  background-color: #218838;
-}
-
-/* 🖼️ Contenedor del Lienzo */
-.canvas-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  padding: 10px;
+  padding: 6px;
+  background-color: #d4d0c8; /* Gris institucional clásico */
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset 1px 1px 0px #ffffff, 0px 2px 2px #404040;
   box-sizing: border-box;
 }
 
-.paint-canvas {
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain; /* Ajusta el lienzo visualmente al tamaño de pantalla */
-  touch-action: none;  /* 🚫 CRUCIAL: Bloquea el scroll del sistema al dibujar con el dedo */
+/* Secciones divisoras dentro de la barra */
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px inset #ffffff; /* Efecto hundido para agrupar */
+  padding: 6px;
+  background-color: #d4d0c8;
+  position: relative;
 }
 
-.shape-select {
-  background-color: #3a3a3a;
-  color: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
+.section-title {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  background-color: #d4d0c8;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #404040;
+}
+
+/* 🔘 El botón gris clásico con relieve 3D */
+.retro-btn {
+  background-color: #d4d0c8;
+  color: #000000;
+  border: 2px solid;
+  border-color: #ffffff #404040 #404040 #ffffff; /* Efecto relieve de botón levantado */
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 11px;
   cursor: pointer;
+  box-shadow: 1px 1px 0px #000000;
+}
+
+/* Efecto cuando el botón está presionado o activo */
+.retro-btn:active, .retro-btn.active {
+  border-color: #404040 #ffffff #ffffff #404040; /* Invierte los bordes para simular hundido */
+  box-shadow: inset 1px 1px 1px #000000;
+  background-color: #e6e6e6;
+  padding: 5px 9px 3px 11px; /* Desplazamiento sutil del texto típico de Win95 */
+}
+
+/* Selectores desplegables retros */
+.retro-select {
+  background-color: #ffffff;
+  color: #000000;
+  border: 2px inset #ffffff;
+  box-shadow: inset 1px 1px 1px #404040;
+  padding: 2px;
+  font-family: inherit;
+  outline: none;
+}
+
+/* Campos de entrada */
+.retro-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.retro-color-picker {
+  border: 2px inset #ffffff;
+  width: 30px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* 🖼️ El Espacio de Trabajo */
+.workspace-wrapper {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  padding-top: 20px;
+  padding-left: 20px;
+  box-sizing: border-box;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #3b6161; /* Contraste oscuro para el fondo del lienzo */
+}
+
+/* Reglas métricas clásicas */
+.ruler {
+  position: absolute;
+  background-color: #d4d0c8;
+  color: #000000;
+  font-family: monospace;
+  font-size: 9px;
+  z-index: 5;
+}
+
+.horizontal-ruler {
+  top: 0;
+  left: 20px;
+  width: 100%;
+  height: 20px;
+  border-bottom: 2px solid #404040;
+}
+
+.vertical-ruler {
+  top: 20px;
+  left: 0;
+  width: 20px;
+  height: 100%;
+  border-right: 2px solid #404040;
+}
+
+/* El lienzo simula ser una hoja de papel física enmarcada */
+.paint-canvas {
+  background-color: #ffffff;
+  border: 3px inset #ffffff;
+  box-shadow: 2px 2px 10px rgba(0,0,0,0.4);
+  touch-action: none;
+}
+
+/* Botones especiales de alerta */
+.clear-btn {
+  color: #800000; /* Texto rojo oscuro retro */
+}
+.save-btn {
+  font-weight: bold;
 }
