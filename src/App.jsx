@@ -6,16 +6,6 @@ import './App.css';
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 
-useEffect(() => {
-  const fetchDrawings = async () => {
-    const q = query(collection(db, "drawings"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    const urls = querySnapshot.docs.map(doc => doc.data().url);
-    setSavedImages(urls);
-  };
-  fetchDrawings();
-}, []);
-
 function App() {
   const [color, setColor] = useState('#000000');
   const [thickness, setThickness] = useState(5);
@@ -30,6 +20,23 @@ function App() {
   const [redoTrigger, setRedoTrigger] = useState(0);
   const [clearTrigger, setClearTrigger] = useState(0);
   const [saveTrigger, setSaveTrigger] = useState(0);
+
+  useEffect(() => {
+    const fetchDrawings = async () => {
+      try {
+        const q = query(collection(db, "drawings"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const urls = querySnapshot.docs
+          .map(doc => doc.data().url)
+          .filter(Boolean);
+        setSavedImages(urls);
+      } catch (error) {
+        console.error('Failed to fetch drawings:', error);
+      }
+    };
+
+    fetchDrawings();
+  }, []);
 
   const handleImageExported = (dataUrl) => {
     setSavedImages(prev => [dataUrl, ...prev]);

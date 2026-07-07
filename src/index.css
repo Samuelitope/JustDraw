@@ -52,6 +52,8 @@
 
 body {
   margin: 0;
+  background-color: #f2efe8;
+  color: #000000;
 }
 
 #root {
@@ -64,6 +66,7 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  background-color: #f2efe8;
 }
 
 h1,
