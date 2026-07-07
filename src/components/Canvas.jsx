@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "../firebase";
 
 useEffect(() => {
   const fetchDrawings = async () => {
