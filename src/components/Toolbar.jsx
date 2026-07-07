@@ -8,7 +8,7 @@ function Toolbar({
   font, setFont,
   scale, setScale,
   saveFormat, setSaveFormat,
-  onUndo, onRedo, onClear, onSave, onImport
+  onUndo, onRedo, onClear, onSave, onImport, onCopy, onCut, onPaste, onGroup, onUngroup
 }) {
   return (
     <div className="toolbar retro-window">
@@ -26,6 +26,16 @@ function Toolbar({
       </div>
 
       <div className="toolbar-section">
+        <span className="section-title">Selección</span>
+        <button className={`retro-btn ${tool === 'select' ? 'active' : ''}`} onClick={() => setTool('select')} title="Seleccionar elementos">Seleccionar</button>
+        <button onClick={onCopy} className="retro-btn" title="Copiar selección">Copiar</button>
+        <button onClick={onCut} className="retro-btn" title="Cortar selección">Cortar</button>
+        <button onClick={onPaste} className="retro-btn" title="Pegar elementos">Pegar</button>
+        <button onClick={onGroup} className="retro-btn" title="Agrupar selección">Agrupar</button>
+        <button onClick={onUngroup} className="retro-btn" title="Desagrupar selección">Desagrupar</button>
+      </div>
+
+      <div className="toolbar-section">
         <span className="section-title">Edición</span>
         <button onClick={onUndo} className="retro-btn" title="Deshacer">Deshacer</button>
         <button onClick={onRedo} className="retro-btn" title="Rehacer">Rehacer</button>
@@ -36,6 +46,7 @@ function Toolbar({
         <button className={`retro-btn ${tool === 'brush' ? 'active' : ''}`} onClick={() => setTool('brush')} title="Pincel">Pincel</button>
         <button className={`retro-btn ${tool === 'eraser' ? 'active' : ''}`} onClick={() => setTool('eraser')} title="Borrador">Borrador</button>
         <button className={`retro-btn ${tool === 'fill' ? 'active' : ''}`} onClick={() => setTool('fill')} title="Bote de Pintura">Relleno</button>
+        <button className={`retro-btn ${tool === 'pan' ? 'active' : ''}`} onClick={() => setTool('pan')} title="Mover el canvas">Mover</button>
         <button className={`retro-btn ${tool === 'crop' ? 'active' : ''}`} onClick={() => setTool('crop')} title="Cortar selección">Recortar</button>
       </div>
       
