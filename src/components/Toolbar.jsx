@@ -7,8 +7,8 @@ function Toolbar({
   shape, setShape,
   font, setFont,
   scale, setScale,
-  orientation, setOrientation,
-  onUndo, onRedo, onClear, onSave
+  saveFormat, setSaveFormat,
+  onUndo, onRedo, onClear, onSave, onImport
 }) {
   return (
     <div className="toolbar retro-window">
@@ -16,15 +16,14 @@ function Toolbar({
       <div className="toolbar-section">
         <span className="section-title">Archivo</span>
         <button onClick={onClear} title="Borrar todo el lienzo" className="retro-btn clear-btn">Limpiar [Alt+L]</button>
-        <button onClick={onSave} className="retro-btn save-btn" title="Guardar dibujo en el historial visual">Guardar [Ctrl+S]</button>      
+        <button onClick={onSave} className="retro-btn save-btn" title="Guardar dibujo en el formato seleccionado">Guardar</button>
+        <select value={saveFormat} onChange={(e) => setSaveFormat(e.target.value)} className="retro-select" title="Formato de descarga">
+          <option value="png">PNG</option>
+          <option value="jpeg">JPEG</option>
+          <option value="pdf">PDF</option>
+        </select>
+        <button onClick={onImport} className="retro-btn" title="Importar dibujo desde archivo">Importar</button>
       </div>
-    <div className="retro-field">
-      <label>Hoja:</label>
-      <select value={orientation} onChange={(e) => setOrientation(e.target.value)} className="retro-select">
-        <option value="horizontal">Horizontal (800x600)</option>
-        <option value="vertical">Vertical (600x800)</option>
-      </select>
-    </div>
 
       <div className="toolbar-section">
         <span className="section-title">Edición</span>

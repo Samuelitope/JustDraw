@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Canvas from './components/Canvas';
 import Toolbar from './components/Toolbar';
 import SavedGallery from './components/SavedGallery';
 import './App.css';
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "./firebase";
 
 function App() {
   const [color, setColor] = useState('#000000');
@@ -14,33 +12,22 @@ function App() {
   const [font, setFont] = useState('Arial');
   const [scale, setScale] = useState(1);
   const [orientation, setOrientation] = useState('horizontal');
+  const [saveFormat, setSaveFormat] = useState('png');
   const [savedImages, setSavedImages] = useState([]);
   
   const [undoTrigger, setUndoTrigger] = useState(0);
   const [redoTrigger, setRedoTrigger] = useState(0);
   const [clearTrigger, setClearTrigger] = useState(0);
   const [saveTrigger, setSaveTrigger] = useState(0);
+  const [importTrigger, setImportTrigger] = useState(0);
 
-  useEffect(() => {
-    const fetchDrawings = async () => {
-      try {
-        const q = query(collection(db, "drawings"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const urls = querySnapshot.docs
-          .map(doc => doc.data().url)
-          .filter(Boolean);
-        setSavedImages(urls);
-      } catch (error) {
-        console.error('Failed to fetch drawings:', error);
-      }
-    };
-
-    fetchDrawings();
+  const handleImageExported = useCallback((dataUrl) => {
+    setSavedImages(prev => [dataUrl, ...prev]);
   }, []);
 
-  const handleImageExported = (dataUrl) => {
+  const handleImport = useCallback((dataUrl) => {
     setSavedImages(prev => [dataUrl, ...prev]);
-  };
+  }, []);
 
   return (
     <div className="paint-app">
@@ -51,20 +38,23 @@ function App() {
         shape={shape} setShape={setShape}
         font={font} setFont={setFont}
         scale={scale} setScale={setScale}
-        orientation={orientation} setOrientation={setOrientation}
+        saveFormat={saveFormat} setSaveFormat={setSaveFormat}
         onUndo={() => setUndoTrigger(prev => prev + 1)}
         onRedo={() => setRedoTrigger(prev => prev + 1)}
         onClear={() => setClearTrigger(prev => prev + 1)}
         onSave={() => setSaveTrigger(prev => prev + 1)}
+        onImport={() => setImportTrigger(prev => prev + 1)}
       />
       <div className="main-workspace-layout">
         <Canvas 
           color={color} thickness={thickness}
           tool={tool} shape={shape} font={font} scale={scale} setScale={setScale}
           orientation={orientation}
+          saveFormat={saveFormat}
           undoTrigger={undoTrigger} redoTrigger={redoTrigger} 
-          clearTrigger={clearTrigger} saveTrigger={saveTrigger}
+          clearTrigger={clearTrigger} saveTrigger={saveTrigger} importTrigger={importTrigger}
           onExportImage={handleImageExported}
+          onImportImage={handleImport}
         />
         <SavedGallery savedImages={savedImages} />
       </div>
