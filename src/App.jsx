@@ -60,7 +60,7 @@ function App() {
       <div className="main-workspace-layout">
         <Canvas 
           color={color} thickness={thickness}
-          tool={tool} shape={shape} font={font} scale={scale}
+          tool={tool} shape={shape} font={font} scale={scale} setScale={setScale}
           orientation={orientation}
           undoTrigger={undoTrigger} redoTrigger={redoTrigger} 
           clearTrigger={clearTrigger} saveTrigger={saveTrigger}
